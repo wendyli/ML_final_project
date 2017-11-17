@@ -1,5 +1,6 @@
 import import_data
 import numpy
+import collections
 from sklearn import linear_model
 
 featureY = "failure"
@@ -30,14 +31,34 @@ def trainLogisticRegression(dataPointsX, dataPointsY):
 
 
 files = generateFileNames([1, 2, 3], [31, 28, 31])
-dataPointsX, dataPointsY = import_data.import_data(files, filter=set(['smart_5_raw', 'smart_187_raw', 'smart_188_raw', 'smart_197_raw', 'smart_198_raw']), include=True)
+dataPointsX, dataPointsY, serialNumberToData = import_data.import_data(files, filter=set(['smart_1_raw', 'smart_3_raw', 'smart_4_raw', 'smart_5_raw', 'smart_7_raw', 'smart_9_raw', 'smart_10_raw', 'smart_12_raw', 'smart_184_raw', 'smart_187_raw', 'smart_188_raw', 'smart_192_raw', 'smart_193_raw', 'smart_194_raw', 'smart_196_raw', 'smart_197_raw', 'smart_198_raw', 'smart_199_raw']), include=True)
 print "Total failures is: " + str(sum(dataPointsY))
+
+totalUnique = 0
+for serialNumber in serialNumberToData.keys():
+    for (dataPointX, dataPointY) in serialNumberToData[serialNumber]:
+        if dataPointY > 0:
+            print serialNumber
+            totalUnique += 1
+            break
+            
+            
+print "Total unique failures: " + str(totalUnique)
 tempX = []
 tempY = []
 max1 = 0
 max0 = 0
-max = 300
+max = 3000
 for i in range(0, len(dataPointsX)):
+    missing = False
+    '''
+    for j in range(0, len(dataPointsX[i])):
+        if dataPointsX[i][j] < 0:
+            missing = True
+            break
+    if missing:
+        continue
+    '''
     if dataPointsY[i] == 0 and max0 < max:
         tempX.append(dataPointsX[i])
         tempY.append(dataPointsY[i])
@@ -46,24 +67,31 @@ for i in range(0, len(dataPointsX)):
         tempX.append(dataPointsX[i])
         tempY.append(dataPointsY[i])
         max1 += 1
-        
+
 dataPointsX = tempX
 dataPointsY = tempY
     
 print "Total disks: %d, num of failures: %d" % (len(dataPointsY), sum(dataPointsY))
-print len(dataPointsX)
-print dataPointsX[0:20]
-print len(dataPointsY)
-print dataPointsY[0:20]
 reg = trainLogisticRegression(dataPointsX, dataPointsY)
+print "Coefficients: " + str(reg.coef_)
 
 truePos = 0
 falsePos = 0
 trueNeg = 0
 falseNeg = 0
-for i in range(0, len(dataPointsX)):
-    result = reg.predict([dataPointsX[i]])
-    if result == dataPointsY[i]:
+print "Len of keys: " + str(len(serialNumberToData.keys()))
+numFailures = 0
+for serialNumber in serialNumberToData.keys():
+    result = 0
+    trueFailure = 0
+    for (dataPointX, dataPointY) in serialNumberToData[serialNumber]:
+        if dataPointY > 0:
+            trueFailure = 1
+        tempResult = reg.predict([dataPointX])[0]
+        if tempResult > 0:
+            result = tempResult
+    numFailures += trueFailure
+    if result == trueFailure:
         if result == 1:
             truePos += 1
         else:
@@ -78,3 +106,7 @@ print "True positive: " + str(truePos)
 print "False positive: " + str(falsePos)
 print "True negative: " + str(trueNeg)
 print "False negative: " + str(falseNeg)
+
+
+print "True positive rate (TP / (TP + FP)): " + str(float(truePos) / (truePos + falsePos))
+print "False negative rate (FN / (FN + TP)): " + str(float(falseNeg) / (falseNeg + truePos))
