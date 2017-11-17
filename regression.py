@@ -30,7 +30,26 @@ def trainLogisticRegression(dataPointsX, dataPointsY):
 
 
 files = generateFileNames([1, 2, 3], [31, 28, 31])
-dataPointsX, dataPointsY = import_data.import_data(files, filter=set(['smart_9_raw', 'smart_10_raw']), include=True)
+dataPointsX, dataPointsY = import_data.import_data(files, filter=set(['smart_5_raw', 'smart_187_raw', 'smart_188_raw', 'smart_197_raw', 'smart_198_raw']), include=True)
+print "Total failures is: " + str(sum(dataPointsY))
+tempX = []
+tempY = []
+max1 = 0
+max0 = 0
+max = 300
+for i in range(0, len(dataPointsX)):
+    if dataPointsY[i] == 0 and max0 < max:
+        tempX.append(dataPointsX[i])
+        tempY.append(dataPointsY[i])
+        max0 += 1
+    if dataPointsY[i] == 1 and max1 < max:
+        tempX.append(dataPointsX[i])
+        tempY.append(dataPointsY[i])
+        max1 += 1
+        
+dataPointsX = tempX
+dataPointsY = tempY
+    
 print "Total disks: %d, num of failures: %d" % (len(dataPointsY), sum(dataPointsY))
 print len(dataPointsX)
 print dataPointsX[0:20]
