@@ -180,7 +180,7 @@ def generateFileNames(dir, year, months, days):
 
 
 def main():
-    smoothing_days = 10
+    smoothing_days = 60
     folders = ["../data_2016_Q1/", "../data_2016_Q2/", "../data_2016_Q3/", "../data_2016_Q4/", "../data_2017_Q1/", "../data_2017_Q2/", "../data_2017_Q3/"]
     years = [2016, 2016, 2016, 2016, 2017, 2017, 2017]
     months = [[1,2,3], [4,5,6], [7,8,9], [10,11,12], [1,2,3], [4,5,6], [7,8,9]]
