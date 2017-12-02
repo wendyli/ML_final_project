@@ -108,7 +108,8 @@ def import_data_with_processing(filenames, processFuncs=dict(), filter=set(), ma
                         serialNumber = ith_raw_data[j]
                 
                 if ith_y_value not in filter:
-                    maxPoints -= 1
+                    if maxPoints is not None:
+                        maxPoints -= 1
                     dataPointsX.append(ith_data_vector)
                     dataPointsY.append(ith_y_value)
                     serialNumberToData[serialNumber].append((ith_data_vector, ith_y_value))
