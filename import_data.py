@@ -160,8 +160,8 @@ def smooth_potential_failures_and_write(filenames, days, out_dir):
                 
                 last_known_failure = true_failures.get(serialNumber, -1)
                 if total_days - 1 - index <= last_known_failure and last_known_failure <= total_days - 1 - index + days:
-                    print "serial number: " + serialNumber + " has failure"
-                    print "index: " + str(index) + ", day: " + str(total_days - 1 - index) + ", last known failure: " + str(last_known_failure) + ", smoothing_days: " + str(days)
+                    #print "serial number: " + serialNumber + " has failure"
+                    #print "index: " + str(index) + ", day: " + str(total_days - 1 - index) + ", last known failure: " + str(last_known_failure) + ", smoothing_days: " + str(days)
                     ith_raw_data[failure_index] = '1'
                 out_data.write(','.join(ith_raw_data) + '\n')
 
@@ -189,7 +189,7 @@ def main():
     for i in range(0, len(folders)):
         files += generateFileNames(folders[i], years[i], months[i], days[i])
     
-    print files
+    #print files
     smooth_potential_failures_and_write(files, smoothing_days, "../test/")
 
 
