@@ -76,7 +76,7 @@ def import_data(filenames, filter=set(['date', 'serial_number', 'model']), inclu
 def import_data_with_processing(filenames, processFuncs=dict(), filter=set(), maxPoints=None):
     dataPointsX = []
     dataPointsY = []
-    serialNumberToData = collections.defaultdict(list)
+    serialNumberToData = collections.defaultdict(dict)
     exceededMax = False
     for filename in filenames:
         with open(filename, 'r') as file_data:
@@ -98,6 +98,7 @@ def import_data_with_processing(filenames, processFuncs=dict(), filter=set(), ma
                 ith_y_value = -1
                 
                 serialNumber = ''
+                date = ''
                 for j in range(0, num_features):
                     attribute_name = attributes_list[j]
                     if attribute_name in processFuncs:
@@ -106,13 +107,15 @@ def import_data_with_processing(filenames, processFuncs=dict(), filter=set(), ma
                         ith_y_value = int(ith_raw_data[j])
                     if attribute_name == 'serial_number':
                         serialNumber = ith_raw_data[j]
+                    if attribute_name == 'date':
+                        date = ith_raw_data[j]
                 
                 if ith_y_value not in filter:
                     if maxPoints is not None:
                         maxPoints -= 1
                     dataPointsX.append(ith_data_vector)
                     dataPointsY.append(ith_y_value)
-                    serialNumberToData[serialNumber].append((ith_data_vector, ith_y_value))
+                    serialNumberToData[serialNumber][date] = (ith_data_vector, ith_y_value)
             
             if exceededMax:
                 break
@@ -160,8 +163,8 @@ def smooth_potential_failures_and_write(filenames, days, out_dir):
                 
                 last_known_failure = true_failures.get(serialNumber, -1)
                 if total_days - 1 - index <= last_known_failure and last_known_failure <= total_days - 1 - index + days:
-                    #print "serial number: " + serialNumber + " has failure"
-                    #print "index: " + str(index) + ", day: " + str(total_days - 1 - index) + ", last known failure: " + str(last_known_failure) + ", smoothing_days: " + str(days)
+                    print "serial number: " + serialNumber + " has failure"
+                    print "index: " + str(index) + ", day: " + str(total_days - 1 - index) + ", last known failure: " + str(last_known_failure) + ", smoothing_days: " + str(days)
                     ith_raw_data[failure_index] = '1'
                 out_data.write(','.join(ith_raw_data) + '\n')
 
@@ -180,7 +183,7 @@ def generateFileNames(dir, year, months, days):
 
 
 def main():
-    smoothing_days = 60
+    smoothing_days = 10
     folders = ["../data_2016_Q1/", "../data_2016_Q2/", "../data_2016_Q3/", "../data_2016_Q4/", "../data_2017_Q1/", "../data_2017_Q2/", "../data_2017_Q3/"]
     years = [2016, 2016, 2016, 2016, 2017, 2017, 2017]
     months = [[1,2,3], [4,5,6], [7,8,9], [10,11,12], [1,2,3], [4,5,6], [7,8,9]]
@@ -189,8 +192,8 @@ def main():
     for i in range(0, len(folders)):
         files += generateFileNames(folders[i], years[i], months[i], days[i])
     
-    #print files
-    smooth_potential_failures_and_write(files, smoothing_days, "../test/")
+    print files
+    smooth_potential_failures_and_write(files, smoothing_days, "../test_10/")
 
 
 if __name__ == "__main__":
