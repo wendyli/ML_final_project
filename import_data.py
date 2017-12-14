@@ -1,6 +1,43 @@
 import csv
 import numpy
 import collections
+import random
+
+def extract_balanced_data(dataPointsX, dataPointsY):
+    total_failures = sum(dataPointsY)
+    total_non_failures = len(dataPointsY) - total_failures
+    
+    if total_failures == total_non_failures:
+        return dataPointsX, dataPointsY
+    
+    fail_indices = [i for i in range(0, len(dataPointsY)) if dataPointsY[i] == 1]
+    non_fail_indices = [i for i in range(0, len(dataPointsY)) if dataPointsY[i] == 0]
+    
+    newDataPointsX = []
+    newDataPointsY = []
+    
+    upper_bound = 0
+    rare_indices = None
+    common_indices = None
+    if total_failures < total_non_failures:
+        upper_bound = total_failures
+        rare_indices = fail_indices
+        common_indices = non_fail_indices
+    else:
+        upper_bound = total_non_failures
+        rare_indices = non_fail_indices
+        common_indices = fail_indices
+    
+    common_samples = random.sample(common_indices, upper_bound)
+    for i in range(0, upper_bound):
+        newDataPointsX.append(dataPointsX[common_samples[i]])
+        newDataPointsY.append(dataPointsY[common_samples[i]])
+    for i in range(0, upper_bound):
+        newDataPointsX.append(dataPointsX[rare_indices[i]])
+        newDataPointsY.append(dataPointsY[rare_indices[i]])
+    
+    return newDataPointsX, newDataPointsY
+
 
 # Parameters:
 # - filenames: a list of paths to files to parse
