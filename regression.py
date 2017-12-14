@@ -2,6 +2,7 @@ import import_data
 import numpy
 import collections
 from sklearn import linear_model
+from sklearn.ensemble import RandomForestClassifier
 
 featureY = "failure"
 filenameDirectory = "../data_Q1_2017/"
@@ -40,6 +41,7 @@ def generateFileNamesNoTest(dir, year, months, days):
 def trainLogisticRegression(dataPointsX, dataPointsY):
     #reg = linear_model.LogisticRegression(class_weight='balanced')
     reg = linear_model.LogisticRegression()
+    #reg = RandomForestClassifier(max_depth=4, random_state=0)
     reg.fit(dataPointsX, dataPointsY)
     return reg
 
@@ -105,15 +107,21 @@ def process_smart_198_raw(smart_198_raw_string):
 # Include all the features we want
 processFuncs = {}
 #processFuncs['smart_5_raw'] = process_smart_5_raw
-processFuncs['smart_5_normalized'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
+#processFuncs['smart_5_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
 #processFuncs['smart_187_raw'] = process_smart_187_raw
-processFuncs['smart_187_normalized'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
+#processFuncs['smart_187_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
 #processFuncs['smart_188_raw'] = process_smart_188_raw
-processFuncs['smart_188_normalized'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
+#processFuncs['smart_188_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
 #processFuncs['smart_197_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_197_normalized'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
+#processFuncs['smart_197_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
 #processFuncs['smart_198_raw'] = process_smart_198_raw
-processFuncs['smart_198_normalized'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
+#processFuncs['smart_198_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
+
+processFuncs['smart_193_raw'] = lambda x: int(x) if x != '' else 0
+processFuncs['smart_194_raw'] = lambda x: int(x) if x != '' else 0
+processFuncs['smart_241_raw'] = lambda x: int(x) if x != '' else 0
+processFuncs['smart_197_raw'] = lambda x: int(x) if x != '' else 0
+processFuncs['smart_9_raw'] = lambda x: int(x) if x != '' else 0
 
 #folders = ["../data_Q1_2016/", "../data_Q2_2016/", "../data_Q3_2016/", "../data_Q4_2016/", "../data_Q1_2017/", "../data_Q2_2017/", "../data_Q3_2017/"]
 #folders = ["../test_10/", "../test_10/", "../test_10/", "../test_10/", "../test_10/", "../test_10/", "../test_10/"]
@@ -137,13 +145,8 @@ for i in range(0, len(folders)):
 dataPointsX, dataPointsY, serialNumberToData = import_data.import_data_with_processing(files, processFuncs, set([]))
 #dataPointsX2, dataPointsY2, serialNumberToData2 = import_data.import_data_with_processing(files, processFuncs, set([1]), len(dataPointsY))
 
-'''
-dataPointsX = numpy.concatenate((dataPointsX, dataPointsX2))
-dataPointsY = numpy.concatenate((dataPointsY, dataPointsY2))
-for serialNumber in serialNumberToData2:
-    points = serialNumberToData.get(serialNumber, []) + serialNumberToData2[serialNumber]
-    serialNumberToData[serialNumber] = points
-'''
+balancedX, balancedY = import_data.extract_balanced_data(dataPointsX, dataPointsY)
+
 print "Total number of points is: " + str(len(dataPointsY))
 print "Total failures is: " + str(sum(dataPointsY))
 
@@ -158,7 +161,7 @@ for serialNumber in serialNumberToData.keys():
             
             
 print "Total unique failures: " + str(totalUnique)
-'''
+
 tempX = []
 tempY = []
 max1 = 0
@@ -166,14 +169,12 @@ max0 = 0
 max = 3620
 for i in range(0, len(dataPointsX)):
     missing = False
-    '''
     for j in range(0, len(dataPointsX[i])):
         if dataPointsX[i][j] < 0:
             missing = True
             break
     if missing:
         continue
-    '''
     if dataPointsY[i] == 0 and max0 < max:
         tempX.append(dataPointsX[i])
         tempY.append(dataPointsY[i])
@@ -183,15 +184,14 @@ for i in range(0, len(dataPointsX)):
         tempY.append(dataPointsY[i])
         max1 += 1
 
-'''
 dataPointsX = tempX
 dataPointsY = tempY
 '''
     
-print "Total disks: %d, num of failures: %d" % (len(dataPointsY), sum(dataPointsY))
-reg = trainLogisticRegression(dataPointsX, dataPointsY)
-print "Coefficients: " + str(reg.coef_)
-
+print "Total disks: %d, num of failures: %d" % (len(balancedY), sum(balancedY))
+reg = trainLogisticRegression(balancedX, balancedY)
+#print "Coefficients: " + str(reg.coef_)
+print "Coefficients: " + str(reg.feature_importances_)
 
 files = generateFileNamesNoTest("../data_2016_Q1/", 2016, [1,2,3], [31,29,31])
 dataPointsX, dataPointsY, serialNumberToData = import_data.import_data_with_processing(files, processFuncs, set())
@@ -202,7 +202,11 @@ trueNeg = 0
 falseNeg = 0
 print "Len of keys: " + str(len(serialNumberToData.keys()))
 numFailures = 0
+numToClassify = 0
 for serialNumber in serialNumberToData.keys():
+    if numToClassify % 1000 == 0:
+        print "Hit num %d" % numToClassify
+    numToClassify += 1
     result = 0
     trueFailure = 0
     misClaffMax = 10
@@ -228,15 +232,15 @@ for serialNumber in serialNumberToData.keys():
         else:
             trueNeg += 1
     else:
-        print "Disk %s was misclassified." % serialNumber
+        #print "Disk %s was misclassified." % serialNumber
         if result == 1:
-            print "False Positive"
+            #print "False Positive"
             falsePos += 1
         else:
-            print "False Negative"
+            #print "False Negative"
             falseNeg += 1
         dataPointX, dataPointY = serialNumberToData[serialNumber][date]
-        print "Misclassified date: %s, pointX: %s, pointY: %s, predicted value: %s, true value: %s" % (str(badDate), str(dataPointX), str(dataPointY), str(result), str(trueFailure))
+        #print "Misclassified date: %s, pointX: %s, pointY: %s, predicted value: %s, true value: %s" % (str(badDate), str(dataPointX), str(dataPointY), str(result), str(trueFailure))
         
 print "True positive: " + str(truePos)
 print "False positive: " + str(falsePos)
