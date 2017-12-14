@@ -147,6 +147,7 @@ def smooth_potential_failures_and_write(filenames, days, out_dir):
                 ith_y_value = -1
                 
                 serialNumber = ''
+                model = ''
                 failure_index = -1
                 for j in range(0, num_features):
                     attribute_name = attributes_list[j]
@@ -155,9 +156,14 @@ def smooth_potential_failures_and_write(filenames, days, out_dir):
                         failure_index = j
                     if attribute_name == 'serial_number':
                         serialNumber = ith_raw_data[j]
-                    if ith_y_value >= 0 and serialNumber != '':
+                    if attribute_name == 'model':
+                        model = ith_raw_data[j]
+                    if ith_y_value >= 0 and serialNumber != '' and model != '':
                         break
                 
+                if model != '' and model[0:2] != 'ST':
+                    continue
+                #print model
                 if ith_y_value == 1:
                     true_failures[serialNumber] = total_days - 1 - index
                 
@@ -184,10 +190,10 @@ def generateFileNames(dir, year, months, days):
 
 def main():
     smoothing_days = 10
-    folders = ["../data_2016_Q1/", "../data_2016_Q2/", "../data_2016_Q3/", "../data_2016_Q4/", "../data_2017_Q1/", "../data_2017_Q2/", "../data_2017_Q3/"]
-    years = [2016, 2016, 2016, 2016, 2017, 2017, 2017]
-    months = [[1,2,3], [4,5,6], [7,8,9], [10,11,12], [1,2,3], [4,5,6], [7,8,9]]
-    days = [[31,29,31], [30,31,30], [31,31,30], [31,30,31], [31,28,31], [30,31,30], [31,31,30]]
+    folders = ["../data_2017_Q1/", "../data_2017_Q2/", "../data_2017_Q3/"]
+    years = [2017, 2017, 2017]
+    months = [[1,2,3], [4,5,6], [7,8,9]]
+    days = [[31,28,31], [30,31,30], [31,31,30]]
     files = []
     for i in range(0, len(folders)):
         files += generateFileNames(folders[i], years[i], months[i], days[i])
