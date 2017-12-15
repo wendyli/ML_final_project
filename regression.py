@@ -1,6 +1,7 @@
 import import_data
 import numpy
 import collections
+import sys
 from sklearn import linear_model
 from sklearn.ensemble import RandomForestClassifier
 
@@ -15,7 +16,7 @@ def generateFileNames(dir, year, months, days):
         monthStr = '0' + str(months[i]) if months[i] < 10 else str(months[i])
         for j in range(1, days[i]+1):
             dayStr = '0' + str(j) if j < 10 else str(j)
-            file_data_name = dir + "{0}-{1}-{2}_smoothed_60.csv".format(yearStr, monthStr, dayStr)
+            file_data_name = dir + "{0}-{1}-{2}_smoothed_10.csv".format(yearStr, monthStr, dayStr)
             filenames.append(file_data_name)
     
     return filenames
@@ -37,13 +38,23 @@ def generateFileNamesNoTest(dir, year, months, days):
 #   data: (featureNames, map of serial number to disk data point)
 #   features: set of features to train on
 #
-# Returns (mapping_from_attribute_name_to_int, trained_regression_model)
+# Returns the train regression model
 def trainLogisticRegression(dataPointsX, dataPointsY):
     #reg = linear_model.LogisticRegression(class_weight='balanced')
     reg = linear_model.LogisticRegression()
-    #reg = RandomForestClassifier(max_depth=4, random_state=0)
     reg.fit(dataPointsX, dataPointsY)
     return reg
+
+
+# Parameters:
+#   data: (featureNames, map of serial number to disk data point)
+#   features: set of features to train on
+#
+# Returns the trained random forest model
+def trainRandomForest(dataPointsX, dataPointsY):
+    forest = RandomForestClassifier(max_depth=4, random_state=0)
+    forest.fit(dataPointsX, dataPointsY)
+    return forest
 
 
 # Define feature processing functions
@@ -104,153 +115,147 @@ def process_smart_198_raw(smart_198_raw_string):
     return critical_value_processed(int(smart_198_raw_string), 1.0)
 
 
-# Include all the features we want
-processFuncs = {}
-#processFuncs['smart_5_raw'] = process_smart_5_raw
-#processFuncs['smart_5_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
-#processFuncs['smart_187_raw'] = process_smart_187_raw
-#processFuncs['smart_187_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
-#processFuncs['smart_188_raw'] = process_smart_188_raw
-#processFuncs['smart_188_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
-#processFuncs['smart_197_raw'] = lambda x: int(x) if x != '' else 0
-#processFuncs['smart_197_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
-#processFuncs['smart_198_raw'] = process_smart_198_raw
-#processFuncs['smart_198_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
-
-processFuncs['smart_193_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_194_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_241_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_197_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_9_raw'] = lambda x: int(x) if x != '' else 0
-
-#folders = ["../data_Q1_2016/", "../data_Q2_2016/", "../data_Q3_2016/", "../data_Q4_2016/", "../data_Q1_2017/", "../data_Q2_2017/", "../data_Q3_2017/"]
-#folders = ["../test_10/", "../test_10/", "../test_10/", "../test_10/", "../test_10/", "../test_10/", "../test_10/"]
-#years = [2016, 2016, 2016, 2016, 2017, 2017, 2017]
-#months = [[1,2,3], [4,5,6], [7,8,9], [10,11,12], [1,2,3], [4,5,6], [7,8,9]]
-#days = [[31,29,31], [30,31,30], [31,31,30], [31,30,31], [31,28,31], [30,31,30], [31,31,30]]
-
-folders = ["../test_60/", "../test_60/"]
-years = [2017, 2017]
-months = [[1,2,3], [4,5,6]]
-days = [[31,28,31], [30,31,30]]
-
-files = []
-for i in range(0, len(folders)):
-    files += generateFileNames(folders[i], years[i], months[i], days[i])
-    break
-
-#filenameDirectory = "../data_Q2_2017/"
-#files = files + generateFileNames([4, 5, 6], [30, 31, 30])
-# dataPointsX, dataPointsY, serialNumberToData = import_data.import_data(files, filter=set(['smart_1_raw', 'smart_3_raw', 'smart_4_raw', 'smart_5_raw', 'smart_7_raw', 'smart_9_raw', 'smart_10_raw', 'smart_12_raw', 'smart_184_raw', 'smart_187_raw', 'smart_188_raw', 'smart_192_raw', 'smart_193_raw', 'smart_194_raw', 'smart_196_raw', 'smart_197_raw', 'smart_198_raw', 'smart_199_raw']), include=True)
-dataPointsX, dataPointsY, serialNumberToData = import_data.import_data_with_processing(files, processFuncs, set([]))
-#dataPointsX2, dataPointsY2, serialNumberToData2 = import_data.import_data_with_processing(files, processFuncs, set([1]), len(dataPointsY))
-
-balancedX, balancedY = import_data.extract_balanced_data(dataPointsX, dataPointsY)
-
-print "Total number of points is: " + str(len(dataPointsY))
-print "Total failures is: " + str(sum(dataPointsY))
-
-'''
-totalUnique = 0
-for serialNumber in serialNumberToData.keys():
-    for (dataPointX, dataPointY) in serialNumberToData[serialNumber]:
-        if dataPointY > 0:
-            #print serialNumber
-            totalUnique += 1
-            break
-            
-            
-print "Total unique failures: " + str(totalUnique)
-
-tempX = []
-tempY = []
-max1 = 0
-max0 = 0
-max = 3620
-for i in range(0, len(dataPointsX)):
-    missing = False
-    for j in range(0, len(dataPointsX[i])):
-        if dataPointsX[i][j] < 0:
-            missing = True
-            break
-    if missing:
-        continue
-    if dataPointsY[i] == 0 and max0 < max:
-        tempX.append(dataPointsX[i])
-        tempY.append(dataPointsY[i])
-        max0 += 1
-    if dataPointsY[i] == 1 and max1 < max:
-        tempX.append(dataPointsX[i])
-        tempY.append(dataPointsY[i])
-        max1 += 1
-
-dataPointsX = tempX
-dataPointsY = tempY
-'''
-    
-print "Total disks: %d, num of failures: %d" % (len(balancedY), sum(balancedY))
-reg = trainLogisticRegression(balancedX, balancedY)
-#print "Coefficients: " + str(reg.coef_)
-print "Coefficients: " + str(reg.feature_importances_)
-
-files = generateFileNamesNoTest("../data_2016_Q1/", 2016, [1,2,3], [31,29,31])
-dataPointsX, dataPointsY, serialNumberToData = import_data.import_data_with_processing(files, processFuncs, set())
-
-truePos = 0
-falsePos = 0
-trueNeg = 0
-falseNeg = 0
-print "Len of keys: " + str(len(serialNumberToData.keys()))
-numFailures = 0
-numToClassify = 0
-for serialNumber in serialNumberToData.keys():
-    if numToClassify % 1000 == 0:
-        print "Hit num %d" % numToClassify
-    numToClassify += 1
-    result = 0
-    trueFailure = 0
-    misClaffMax = 10
-    misClaffPoints = []
-    badDate = None
-    for date in serialNumberToData[serialNumber].keys():
-        dataPointX, dataPointY = serialNumberToData[serialNumber][date]
-        if dataPointY > 0:
-            trueFailure = 1
-        tempResult = reg.predict([dataPointX])[0]
-        result += tempResult
-        if trueFailure == 0 and result > 0 or trueFailure == 1 and result == 0:
-            badDate = date
-    
-    numFailures += trueFailure
-    if result >= 1:
-        result = 1
+def print_stats_helper(prefix_msg, numerator, denominator):
+    if denominator > 0:
+        prefix_msg += str(numerator / denominator)
     else:
-        result = 0
-    if result == trueFailure:
-        if result == 1:
-            truePos += 1
-        else:
-            trueNeg += 1
-    else:
-        #print "Disk %s was misclassified." % serialNumber
-        if result == 1:
-            #print "False Positive"
-            falsePos += 1
-        else:
-            #print "False Negative"
-            falseNeg += 1
-        dataPointX, dataPointY = serialNumberToData[serialNumber][date]
-        #print "Misclassified date: %s, pointX: %s, pointY: %s, predicted value: %s, true value: %s" % (str(badDate), str(dataPointX), str(dataPointY), str(result), str(trueFailure))
+        prefix_msg += "undefined"
+    print prefix_msg
+
+
+# Assumes the arguments are floats
+def print_stats(TP, TN, FP, FN):
+    print "True positive: " + str(TP)
+    print "True negative: " + str(TN)
+    print "False positive: " + str(FP)
+    print "False negative: " + str(FN)
+
+    print_stats_helper("True positive rate (TP / (TP + FP)): ", TP, TP + FP)
+    print_stats_helper("True negative rate (TN / (TN + FN)): ", TN, TN + FN)
+    print_stats_helper("False positive rate (FP / (FP + TN)): ", FP, FP + TN)
+    print_stats_helper("False negative rate (FN / (FN + TP)): ", FN, FN + TP)
+    print_stats_helper("F1 score (TP / (2TP + FN + FP)): ", TP, 2 * TP + FN + FP)
+
+
+def main():
+    # Include all the features we want
+    processFuncs = {}
+    #processFuncs['smart_5_raw'] = process_smart_5_raw
+    #processFuncs['smart_5_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
+    #processFuncs['smart_187_raw'] = process_smart_187_raw
+    #processFuncs['smart_187_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
+    #processFuncs['smart_188_raw'] = process_smart_188_raw
+    #processFuncs['smart_188_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
+    #processFuncs['smart_197_raw'] = lambda x: int(x) if x != '' else 0
+    #processFuncs['smart_197_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
+    #processFuncs['smart_198_raw'] = process_smart_198_raw
+    #processFuncs['smart_198_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
+
+    processFuncs['smart_193_raw'] = lambda x: 1 if x != '' and int(x) > 0 else 0
+    processFuncs['smart_194_raw'] = lambda x: 1 if x != '' and int(x) > 0 else 0
+    processFuncs['smart_241_raw'] = lambda x: 1 if x != '' and int(x) > 0 else 0
+    processFuncs['smart_197_raw'] = lambda x: 1 if x != '' and int(x) > 0 else 0
+    processFuncs['smart_9_raw'] = lambda x: 1 if x != '' and int(x) > 0 else 0
+
+    
+    # Set up the files we wish to use
+    #folders = ["../data_Q1_2016/", "../data_Q2_2016/", "../data_Q3_2016/", "../data_Q4_2016/", "../data_Q1_2017/", "../data_Q2_2017/", "../data_Q3_2017/"]
+    #folders = ["../test_10/", "../test_10/", "../test_10/", "../test_10/", "../test_10/", "../test_10/", "../test_10/"]
+    #years = [2016, 2016, 2016, 2016, 2017, 2017, 2017]
+    #months = [[1,2,3], [4,5,6], [7,8,9], [10,11,12], [1,2,3], [4,5,6], [7,8,9]]
+    #days = [[31,29,31], [30,31,30], [31,31,30], [31,30,31], [31,28,31], [30,31,30], [31,31,30]]
+
+    folders = ["../test_10/", "../test_10/", "../test_10"]
+    years = [2017, 2017, 2017]
+    months = [[1,2,3], [4,5,6], [7,8,9]]
+    days = [[31,28,31], [30,31,30], [31,31,30]]
+
+    files = []
+    for i in range(0, len(folders)):
+        files += generateFileNames(folders[i], years[i], months[i], days[i])
+        break
+
+    
+    # Extract data from files
+    dataPointsX, dataPointsY, serialNumberToData = import_data.import_data_with_processing(files, processFuncs, set([]))
+    
+    # Use balanced data if desired
+    # balancedX = dataPointsX
+    # balancedY = dataPointsY
+    balancedX, balancedY = import_data.extract_balanced_data(dataPointsX, dataPointsY)
+
+    print "Total number of points is: " + str(len(dataPointsY))
+    print "Total failures is: " + str(sum(dataPointsY))
+
+    '''
+    totalUnique = 0
+    for serialNumber in serialNumberToData.keys():
+        for (dataPointX, dataPointY) in serialNumberToData[serialNumber]:
+            if dataPointY > 0:
+                #print serialNumber
+                totalUnique += 1
+                break
+                
+                
+    print "Total unique failures: " + str(totalUnique)
+    '''
         
-print "True positive: " + str(truePos)
-print "False positive: " + str(falsePos)
-print "True negative: " + str(trueNeg)
-print "False negative: " + str(falseNeg)
+    print "Total disks in balanced set: %d, num of failures in balanced: %d" % (len(balancedY), sum(balancedY))
+    model = trainLogisticRegression(balancedX, balancedY)
+    print "Coefficients: " + str(model.coef_)
+    # model = trainRandomForest(balancedX, balancedY)
+    #print "Coefficients: " + str(reg.feature_importances_)
 
-print filenameDirectory
+    files = generateFileNamesNoTest("../data_2016_Q1/", 2016, [1,2,3], [31,29,31])
+    dataPointsX, dataPointsY, serialNumberToData = import_data.import_data_with_processing(files, processFuncs, set())
 
+    truePos = 0
+    falsePos = 0
+    trueNeg = 0
+    falseNeg = 0
+    print "Len of keys: " + str(len(serialNumberToData.keys()))
+    numFailures = 0
+    numToClassify = 0
+    for serialNumber in serialNumberToData.keys():
+        if numToClassify % 1000 == 0:
+            print "Hit num %d" % numToClassify
+        numToClassify += 1
+        result = 0
+        trueFailure = 0
+        misClaffMax = 10
+        misClaffPoints = []
+        badDate = None
+        for date in serialNumberToData[serialNumber].keys():
+            dataPointX, dataPointY = serialNumberToData[serialNumber][date]
+            if dataPointY > 0:
+                trueFailure = 1
+            tempResult = model.predict([dataPointX])[0]
+            result += tempResult
+            if trueFailure == 0 and result > 0 or trueFailure == 1 and result == 0:
+                badDate = date
+        
+        numFailures += trueFailure
+        if result >= 1:
+            result = 1
+        else:
+            result = 0
+        if result == trueFailure:
+            if result == 1:
+                truePos += 1
+            else:
+                trueNeg += 1
+        else:
+            #print "Disk %s was misclassified." % serialNumber
+            if result == 1:
+                #print "False Positive"
+                falsePos += 1
+            else:
+                #print "False Negative"
+                falseNeg += 1
+            dataPointX, dataPointY = serialNumberToData[serialNumber][date]
+            #print "Misclassified date: %s, pointX: %s, pointY: %s, predicted value: %s, true value: %s" % (str(badDate), str(dataPointX), str(dataPointY), str(result), str(trueFailure))
+    
+    print_stats(float(truePos), float(trueNeg), float(falsePos), float(falseNeg))
 
-print "True positive rate (TP / (TP + FP)): " + str(float(truePos) / (truePos + falsePos))
-print "True negative rate (TN / (TN + FN)): " + str(float(trueNeg) / (trueNeg + falseNeg))
-print "False positive rate (FP / (FP + TN)): " + str(float(falsePos) / (falsePos + trueNeg))
-print "False negative rate (FN / (FN + TP)): " + str(float(falseNeg) / (falseNeg + truePos))
+if __name__ == "__main__":
+    main()
