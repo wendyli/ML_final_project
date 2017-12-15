@@ -48,7 +48,7 @@ def trainModel(dataPointsX, dataPointsY):
     #reg = RandomForestClassifier(max_depth=2, random_state=0)
     reg = RandomForestClassifier(
             bootstrap=True, 
-            class_weight={1: 1, 0:1},# increase weight of minority class 
+            class_weight={1: 1.5, 0:1},# increase weight of minority class 
             criterion='gini',
             max_depth=1, 
             max_features='auto', 
@@ -74,7 +74,7 @@ def process_smart_raw_default(smart_raw_string):
         return 0
     
     return int(smart_raw_string)
-
+ 
 def critical_value_processed(value, weight):
     return 1.0 - 1.0 / (weight * value + 1.0)
 
@@ -88,33 +88,24 @@ def process_smart_5_raw(smart_5_raw_string):
 # Include all the features we want
 processFuncs = {}
 
-processFuncs['smart_193_raw'] = lambda x: int(x) if x != '' else 0
+processFuncs['smart_198_raw'] = lambda x: int(x) if x != '' else 0
+processFuncs['smart_197_raw'] = lambda x: int(x) if x != '' else 0
+processFuncs['smart_188_raw'] = lambda x: int(x) if x != '' else 0
+processFuncs['smart_187_raw'] = lambda x: int(x) if x != '' else 0 # not useful 
+processFuncs['smart_5_raw'] = lambda x: int(x) if x != '' else 0
+
+processFuncs['smart_193_raw'] = lambda x: int(x) if x != '' else 0 # not useful
 processFuncs['smart_194_raw'] = lambda x: int(x) if x != '' else 0
 processFuncs['smart_241_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_197_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_9_raw'] = lambda x: int(x) if x != '' else 0
+processFuncs['smart_9_raw'] = lambda x: int(x) if x != '' else 0 # not useful
 processFuncs['smart_242_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_5_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_240_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_187_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_1_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_3_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_198_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_4_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_12_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_7_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_192_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_196_raw'] = lambda x: int(x) if x != '' else 0
-processFuncs['smart_188_raw'] = lambda x: int(x) if x != '' else 0
-
-
 #folders = ["../data_Q1_2016/", "../data_Q2_2016/", "../data_Q3_2016/", "../data_Q4_2016/", "../data_Q1_2017/", "../data_Q2_2017/", "../data_Q3_2017/"]
 #folders = ["../test_10/", "../test_10/", "../test_10/", "../test_10/", "../test_10/", "../test_10/", "../test_10/"]
 #years = [2016, 2016, 2016, 2016, 2017, 2017, 2017]
 #months = [[1,2,3], [4,5,6], [7,8,9], [10,11,12], [1,2,3], [4,5,6], [7,8,9]]
 #days = [[31,29,31], [30,31,30], [31,31,30], [31,30,31], [31,28,31], [30,31,30], [31,31,30]]
 
-folders = ["../test_10/", "../test_10/", "../test_10/"]
+folders = ["../test_10/", "../test_10/"]
 years = [2017, 2017, 2017]
 months = [[1,2,3], [4,5,6], [7,8,9]]
 days = [[31,28,31], [30,31,30], [31,31,30]]
@@ -122,6 +113,7 @@ days = [[31,28,31], [30,31,30], [31,31,30]]
 files = []
 for i in range(0, len(folders)):
     files += generateFileNames(folders[i], years[i], months[i], days[i])
+    break
 
 #filenameDirectory = "../data_Q2_2017/"
 #files = files + generateFileNames([4, 5, 6], [30, 31, 30])
@@ -141,7 +133,7 @@ reg = trainModel(balancedX, balancedY)
 #print "Coefficients: " + str(reg.coef_)
 print "Coefficients: " + str(reg.feature_importances_)
 
-files = generateFileNamesNoTest("../data_2016_Q1/", 2016, [1,2,3], [31,29,31])
+files = generateFileNamesNoTest("../data_2016_Q2/", 2016, [4,5,6], [30,31,30])
 #files = generateFileNamesNoTest("../data_2016_Q1/", 2016, [1], [3])
 dataPointsX, dataPointsY, serialNumberToData = import_data.import_data_with_processing(files, processFuncs, set())
 
@@ -217,7 +209,7 @@ print "False negative rate (FN / (FN + TP)): " + str(float(falseNeg) / (falseNeg
 
 #----------- Generate Random Forest ----------------
 
-false_positive_rate, true_positive_rate, thresholds = roc_curve(actual, prob_predictions)
+false_positive_rate, true_positive_rate, thresholds = roc_curve(actual, predictions)
 roc_auc = auc(false_positive_rate, true_positive_rate)
 
 # ---------- Check ROC -----------------
@@ -236,3 +228,5 @@ plt.ylim([-0.1,1.2])
 plt.ylabel('True Positive Rate')
 plt.xlabel('False Positive Rate')
 plt.show()
+
+
