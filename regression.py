@@ -5,6 +5,10 @@ import sys
 from sklearn import linear_model
 from sklearn.ensemble import RandomForestClassifier
 
+import matplotlib.pyplot as plt
+from itertools import cycle
+from sklearn.metrics import roc_curve, auc
+
 featureY = "failure"
 filenameDirectory = "../data_Q1_2017/"
 
@@ -123,6 +127,22 @@ def print_stats_helper(prefix_msg, numerator, denominator):
     print prefix_msg
 
 
+def generate_roc(actual, predicted):
+    false_positive_rate, true_positive_rate, thresholds = roc_curve(actual, predicted)
+    roc_auc = auc(false_positive_rate, true_positive_rate)
+
+    plt.title('ROC Curve (Logistic Regression)')
+    plt.plot(false_positive_rate, true_positive_rate, 'b',
+    label='AUC = %0.2f'% roc_auc)
+    plt.legend(loc='lower right')
+    plt.plot([0,1],[0,1],'r--')
+    plt.xlim([-0.1,1.2])
+    plt.ylim([-0.1,1.2])
+    plt.ylabel('True Positive Rate')
+    plt.xlabel('False Positive Rate')
+    plt.show()
+
+
 # Assumes the arguments are floats
 def print_stats(TP, TN, FP, FN):
     print "True positive: " + str(TP)
@@ -134,7 +154,7 @@ def print_stats(TP, TN, FP, FN):
     print_stats_helper("True negative rate (TN / (TN + FN)): ", TN, TN + FN)
     print_stats_helper("False positive rate (FP / (FP + TN)): ", FP, FP + TN)
     print_stats_helper("False negative rate (FN / (FN + TP)): ", FN, FN + TP)
-    print_stats_helper("F1 score (TP / (2TP + FN + FP)): ", TP, 2 * TP + FN + FP)
+    print_stats_helper("F1 score (2TP / (2TP + FN + FP)): ", 2 * TP, 2 * TP + FN + FP)
 
 
 def main():
@@ -216,7 +236,11 @@ def main():
     print "Len of keys: " + str(len(serialNumberToData.keys()))
     numFailures = 0
     numToClassify = 0
+    
+    actual = []
+    predicted = []
     for serialNumber in serialNumberToData.keys():
+        highestScore = 0.0
         if numToClassify % 1000 == 0:
             print "Hit num %d" % numToClassify
         numToClassify += 1
@@ -230,9 +254,13 @@ def main():
             if dataPointY > 0:
                 trueFailure = 1
             tempResult = model.predict([dataPointX])[0]
+            tempScore = model.predict_proba([dataPointX])[0][1]  # 1 is the probability of failure
             result += tempResult
             if trueFailure == 0 and result > 0 or trueFailure == 1 and result == 0:
                 badDate = date
+            
+            if tempScore > highestScore:
+                highestScore = tempScore
         
         numFailures += trueFailure
         if result >= 1:
@@ -254,8 +282,15 @@ def main():
                 falseNeg += 1
             dataPointX, dataPointY = serialNumberToData[serialNumber][date]
             #print "Misclassified date: %s, pointX: %s, pointY: %s, predicted value: %s, true value: %s" % (str(badDate), str(dataPointX), str(dataPointY), str(result), str(trueFailure))
-    
+        
+        actual.append(trueFailure)
+        predicted.append(highestScore)
+        
     print_stats(float(truePos), float(trueNeg), float(falsePos), float(falseNeg))
+    generate_roc(actual, predicted)
+    with open("logistic_actual_predicted.csv", "w+") as out_data:
+        out_data.write(','.join(actual) + '\n')
+        out_data.write(','.join(predicted) + '\n')
 
 if __name__ == "__main__":
     main()
