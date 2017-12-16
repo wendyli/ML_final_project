@@ -20,7 +20,15 @@ Baseline.py
 LogisticRegression.py
 
 NaiveBayes.py
-
+  - code used to implement NaiveBayes on test and training data
+  - Uses MultinomialNaiveBayes module from scip-py for training and testing
+  - Inputs: test data set
+  - Outputs: TP, FP, FN, TN counts as well as calculated rates, precision, accuracy and recall
+  
+  command to run: python Naive_Bayes.py
+  
+  (Note the script is in the branch naive-bayes)
+  
 RandomForest.py
   - code used to implement RandomForest on test and training data
   - Inputs: training data sets and test/ validation data set 
