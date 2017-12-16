@@ -1,4 +1,7 @@
+#!/usr/bin/python
+
 import import_data
+import math
 import numpy
 import collections
 import sys
@@ -9,9 +12,9 @@ import matplotlib.pyplot as plt
 from itertools import cycle
 from sklearn.metrics import roc_curve, auc
 
-featureY = "failure"
-filenameDirectory = "../data_Q1_2017/"
 
+model_to_use = 'logistic'
+#model_to_use = 'random'
 
 def generateFileNames(dir, year, months, days):
     filenames = []
@@ -33,7 +36,7 @@ def generateFileNamesNoTest(dir, year, months, days):
         monthStr = '0' + str(months[i]) if months[i] < 10 else str(months[i])
         for j in range(1, days[i]+1):
             dayStr = '0' + str(j) if j < 10 else str(j)
-            file_data_name = dir + "{0}-{1}-{2}.csv".format(yearStr, monthStr, dayStr)
+            file_data_name = dir + "{0}-{1}-{2}_smoothed_0.csv".format(yearStr, monthStr, dayStr)
             filenames.append(file_data_name)
     
     return filenames
@@ -150,7 +153,7 @@ def print_stats(TP, TN, FP, FN):
     print "False positive: " + str(FP)
     print "False negative: " + str(FN)
 
-    print_stats_helper("True positive rate (TP / (TP + FP)): ", TP, TP + FP)
+    print_stats_helper("True positive rate (TP / (TP + FN)): ", TP, TP + FN)
     print_stats_helper("True negative rate (TN / (TN + FN)): ", TN, TN + FN)
     print_stats_helper("False positive rate (FP / (FP + TN)): ", FP, FP + TN)
     print_stats_helper("False negative rate (FN / (FN + TP)): ", FN, FN + TP)
@@ -160,30 +163,13 @@ def print_stats(TP, TN, FP, FN):
 def main():
     # Include all the features we want
     processFuncs = {}
-    #processFuncs['smart_5_raw'] = process_smart_5_raw
-    #processFuncs['smart_5_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
-    #processFuncs['smart_187_raw'] = process_smart_187_raw
-    #processFuncs['smart_187_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
-    #processFuncs['smart_188_raw'] = process_smart_188_raw
-    #processFuncs['smart_188_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
-    #processFuncs['smart_197_raw'] = lambda x: int(x) if x != '' else 0
-    #processFuncs['smart_197_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
-    #processFuncs['smart_198_raw'] = process_smart_198_raw
-    #processFuncs['smart_198_raw'] = lambda x: int(x) if x != '' and int(x) > 0 else 0
 
     processFuncs['smart_193_raw'] = lambda x: 1 if x != '' and int(x) > 0 else 0
     processFuncs['smart_194_raw'] = lambda x: 1 if x != '' and int(x) > 0 else 0
     processFuncs['smart_241_raw'] = lambda x: 1 if x != '' and int(x) > 0 else 0
     processFuncs['smart_197_raw'] = lambda x: 1 if x != '' and int(x) > 0 else 0
     processFuncs['smart_9_raw'] = lambda x: 1 if x != '' and int(x) > 0 else 0
-
     
-    # Set up the files we wish to use
-    #folders = ["../data_Q1_2016/", "../data_Q2_2016/", "../data_Q3_2016/", "../data_Q4_2016/", "../data_Q1_2017/", "../data_Q2_2017/", "../data_Q3_2017/"]
-    #folders = ["../test_10/", "../test_10/", "../test_10/", "../test_10/", "../test_10/", "../test_10/", "../test_10/"]
-    #years = [2016, 2016, 2016, 2016, 2017, 2017, 2017]
-    #months = [[1,2,3], [4,5,6], [7,8,9], [10,11,12], [1,2,3], [4,5,6], [7,8,9]]
-    #days = [[31,29,31], [30,31,30], [31,31,30], [31,30,31], [31,28,31], [30,31,30], [31,31,30]]
 
     folders = ["../test_10/", "../test_10/", "../test_10"]
     years = [2017, 2017, 2017]
@@ -199,34 +185,26 @@ def main():
     # Extract data from files
     dataPointsX, dataPointsY, serialNumberToData = import_data.import_data_with_processing(files, processFuncs, set([]))
     
-    # Use balanced data if desired
-    # balancedX = dataPointsX
-    # balancedY = dataPointsY
+    # Use balanced data
     balancedX, balancedY = import_data.extract_balanced_data(dataPointsX, dataPointsY)
 
     print "Total number of points is: " + str(len(dataPointsY))
     print "Total failures is: " + str(sum(dataPointsY))
 
-    '''
-    totalUnique = 0
-    for serialNumber in serialNumberToData.keys():
-        for (dataPointX, dataPointY) in serialNumberToData[serialNumber]:
-            if dataPointY > 0:
-                #print serialNumber
-                totalUnique += 1
-                break
-                
-                
-    print "Total unique failures: " + str(totalUnique)
-    '''
-        
-    print "Total disks in balanced set: %d, num of failures in balanced: %d" % (len(balancedY), sum(balancedY))
-    model = trainLogisticRegression(balancedX, balancedY)
-    print "Coefficients: " + str(model.coef_)
-    # model = trainRandomForest(balancedX, balancedY)
-    #print "Coefficients: " + str(reg.feature_importances_)
 
-    files = generateFileNamesNoTest("../data_2016_Q1/", 2016, [1,2,3], [31,29,31])
+    print "Total disks in balanced set: %d, num of failures in balanced: %d" % (len(balancedY), sum(balancedY))
+    model = None
+    if model_to_use == 'logistic':
+        model = trainLogisticRegression(balancedX, balancedY)
+        print "Coefficients: " + str(model.coef_)
+    elif model_to_use == 'random':
+        model = trainRandomForest(balancedX, balancedY)
+        print "Coefficients: " + str(model.feature_importances_)
+    else:
+        print "Unknown model.  Exiting..."
+        return
+
+    files = generateFileNamesNoTest("../test_final/", 2016, [4,5,6], [30,31,30])
     dataPointsX, dataPointsY, serialNumberToData = import_data.import_data_with_processing(files, processFuncs, set())
 
     truePos = 0
@@ -273,24 +251,24 @@ def main():
             else:
                 trueNeg += 1
         else:
-            #print "Disk %s was misclassified." % serialNumber
             if result == 1:
-                #print "False Positive"
                 falsePos += 1
             else:
-                #print "False Negative"
                 falseNeg += 1
             dataPointX, dataPointY = serialNumberToData[serialNumber][date]
-            #print "Misclassified date: %s, pointX: %s, pointY: %s, predicted value: %s, true value: %s" % (str(badDate), str(dataPointX), str(dataPointY), str(result), str(trueFailure))
         
         actual.append(trueFailure)
         predicted.append(highestScore)
         
     print_stats(float(truePos), float(trueNeg), float(falsePos), float(falseNeg))
     generate_roc(actual, predicted)
-    with open("logistic_actual_predicted.csv", "w+") as out_data:
-        out_data.write(','.join(actual) + '\n')
-        out_data.write(','.join(predicted) + '\n')
+    
+    actual_str = [str(actual[i]) for i in range(0, len(actual))]
+    predicted_str = [str(predicted[i]) for i in range(0, len(predicted))]
+    
+    with open("logistic_actual_predicted_true_test.csv", "w+") as out_data:
+        out_data.write(','.join(actual_str) + '\n')
+        out_data.write(','.join(predicted_str) + '\n')
 
 if __name__ == "__main__":
     main()
