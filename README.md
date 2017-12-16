@@ -5,6 +5,9 @@ To run any of our code files, unzip the code.zip and data.zip files in a shared 
 the data provided is not correctly formatted to be read in by the models and the python code must be modified to read 
 in the small subset of data submitted. 
 
+import_data.py 
+
+
 Baseline.py
   - code to implement baseline prediction
   - Baseline predicts failure if any values in its selected SMART attributes is greater than 0 and predicts no
