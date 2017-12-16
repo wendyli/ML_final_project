@@ -5,7 +5,9 @@ To run any of our code files, unzip the code.zip and data.zip files in a shared 
 the data provided is not correctly formatted to be read in by the models and the python code must be modified to read 
 in the small subset of data submitted. 
 
-import_data.py 
+import_data.py
+  - code that preprocesses data and prepares it for training / testing
+  - filters out features such that only the features we want are returned for training / testing
 
 
 Baseline.py
@@ -18,10 +20,15 @@ Baseline.py
   command to run: python Baseline.py 
   
 LogisticRegression.py
+  - code that implements logistic regression
+  - uses LogisticRegression module from sci-py for training and testing
+  - feature values are preprocessed where value is 1 if raw value > 0 and 0 otherwise
+  - Inputs (inside code): training data set and test data set
+  - Outputs: TP, FP, FN, TN counts as well as calculated rates, precision, accuracy, recall, and ROC curves
 
 NaiveBayes.py
   - code used to implement NaiveBayes on test and training data
-  - Uses MultinomialNaiveBayes module from scip-py for training and testing
+  - Uses MultinomialNaiveBayes module from sci-py for training and testing
   - Inputs: test data set
   - Outputs: TP, FP, FN, TN counts as well as calculated rates, precision, accuracy and recall
   
@@ -34,4 +41,7 @@ RandomForest.py
   - Inputs: training data sets and test/ validation data set 
   - Outputs: TP, TN, FP, FN and a ROC curve 
   
-  command to run: 
+  command to run (for training and testing):
+  py -2 ./<model_name>.py
+  
+  Note: the command assumes that training and testing files are found in "../test_10/" for training data and "../test_final/" for test data.
